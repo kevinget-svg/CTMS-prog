@@ -1,4 +1,4 @@
-"""My Tasks page — view and manage assigned tasks."""
+"""My Tasks page — view and manage assigned tasks with CDISC domain types."""
 
 import streamlit as st
 from datetime import date
@@ -15,38 +15,48 @@ rank = get_rank(user)
 st.title("My Tasks")
 
 # --- Filters ---
-col1, col2, col3 = st.columns(3)
+categories = task_model.get_categories()
+category_filter_map = {0: "All Categories"}
+category_filter_map.update({c["id"]: c["name"] for c in categories})
+
+col1, col2, col3, col4 = st.columns(4)
 with col1:
-    filter_status = st.selectbox(
-        "Status Filter",
-        ["All", "Not Started", "In Progress", "Awaiting QC", "QC In Review", "Revision Needed", "Complete"],
+    filter_category = st.selectbox(
+        "Category",
+        options=list(category_filter_map.keys()),
+        format_func=lambda x: category_filter_map[x],
     )
 with col2:
-    filter_priority = st.selectbox(
-        "Priority Filter",
-        ["All", "Critical", "High", "Normal", "Low"],
+    filter_status = st.selectbox(
+        "Status",
+        ["All", "Not Started", "In Progress", "Awaiting QC", "QC In Review", "Revision Needed", "Complete"],
     )
 with col3:
+    filter_priority = st.selectbox(
+        "Priority",
+        ["All", "Critical", "High", "Normal", "Low"],
+    )
+with col4:
     projects = project_model.get_projects_for_user(user["id"])
     project_opts = {0: "All Projects"}
     project_opts.update({p["id"]: p["protocol_number"] for p in projects})
     filter_project = st.selectbox(
-        "Project Filter",
+        "Project",
         options=list(project_opts.keys()),
         format_func=lambda x: project_opts[x],
     )
 
 st.divider()
 
-# --- New Task Form (Manager/Admin only) ---
+# --- New Task Form (LSP/Admin only, rank >= 30) ---
 if rank >= 30:
     all_users = user_model.get_all()
     all_roles = user_model.get_all_roles()
-    programmer_ranks = [r["id"] for r in all_roles if r["rank"] <= 20]  # rank <= 20: Programmers, Reviewers
-    reviewer_ranks = [r["id"] for r in all_roles if r["rank"] >= 20]    # rank >= 20: Reviewers, Managers
+    sp_rank_ids = [r["id"] for r in all_roles if r["rank"] <= 25]
+    reviewer_rank_ids = [r["id"] for r in all_roles if r["rank"] >= 25]
 
-    assignable_users = [u for u in all_users if u["role_id"] in programmer_ranks]
-    reviewer_users = [u for u in all_users if u["role_id"] in reviewer_ranks]
+    assignable = [u for u in all_users if u["role_id"] in sp_rank_ids]
+    reviewers = [u for u in all_users if u["role_id"] in reviewer_rank_ids]
 
     with st.expander("Create New Task", icon=":material/add_task:"):
         with st.form("new_task_form"):
@@ -60,18 +70,39 @@ if rank >= 30:
                 )
                 task_title = st.text_input("Task Title")
                 task_desc = st.text_area("Description")
+
+                # Cascading type selector
+                st.caption("Task Type")
+                tc1, tc2 = st.columns(2)
+                with tc1:
+                    task_category = st.selectbox(
+                        "Category",
+                        options=[c["id"] for c in categories],
+                        format_func=lambda x: next((c["name"] for c in categories if c["id"] == x), ""),
+                        key="new_task_cat",
+                    )
+                with tc2:
+                    task_subtypes = task_model.get_subtypes(task_category)
+                    task_subtype = st.selectbox(
+                        "Subtype",
+                        options=[s["id"] for s in task_subtypes],
+                        format_func=lambda x: next(
+                            (f"{s['code']} — {s['name']}" for s in task_subtypes if s["id"] == x), ""
+                        ),
+                        key="new_task_sub",
+                    )
+
             with col2:
                 task_assignee = st.selectbox(
                     "Assign To",
-                    options=[u["id"] for u in assignable_users],
-                    format_func=lambda x: next((u["full_name"] for u in assignable_users if u["id"] == x), ""),
+                    options=[u["id"] for u in assignable],
+                    format_func=lambda x: next((u["full_name"] for u in assignable if u["id"] == x), ""),
                 )
                 task_reviewer = st.selectbox(
                     "Reviewer",
-                    options=[0] + [u["id"] for u in reviewer_users],
-                    format_func=lambda x: "None" if x == 0 else next((u["full_name"] for u in reviewer_users if u["id"] == x), ""),
+                    options=[0] + [u["id"] for u in reviewers],
+                    format_func=lambda x: "None" if x == 0 else next((u["full_name"] for u in reviewers if u["id"] == x), ""),
                 )
-                task_type = st.selectbox("Type", ["Table", "Figure", "Listing", "Analysis", "Other"])
                 task_priority = st.selectbox("Priority", ["Normal", "High", "Critical", "Low"])
                 task_due = st.date_input("Due Date")
                 task_est = st.number_input("Estimated Hours", min_value=0.0, step=0.5)
@@ -84,7 +115,7 @@ if rank >= 30:
                         assigned_to=task_assignee,
                         reviewer_id=task_reviewer if task_reviewer != 0 else None,
                         description=task_desc,
-                        tfl_type=task_type,
+                        subtype_id=task_subtype,
                         priority=task_priority,
                         due_date=str(task_due),
                         estimated_hours=task_est if task_est > 0 else None,
@@ -98,6 +129,13 @@ if rank >= 30:
 
 # --- Task List ---
 tasks = task_model.get_tasks_for_user(user)
+
+# Filter by category
+if filter_category != 0:
+    # Get subtype IDs for this category
+    cat_subtypes = task_model.get_subtypes(filter_category)
+    cat_sub_ids = {s["id"] for s in cat_subtypes}
+    tasks = [t for t in tasks if t["subtype_id"] in cat_sub_ids]
 
 if filter_status != "All":
     tasks = [t for t in tasks if t["status"] == filter_status]
@@ -113,8 +151,9 @@ else:
         with st.container(border=True):
             col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
             with col1:
+                type_label = f"{t['category_name']}/{t['subtype_code']}" if t["subtype_code"] else ""
                 st.write(f"**{t['title']}**")
-                st.caption(f"{t['protocol_number'] or 'N/A'} — {t['study_name'] or ''}")
+                st.caption(f"{type_label} | {t['protocol_number'] or 'N/A'}")
             with col2:
                 st.write(f"Assignee: {t['assignee_name']}")
                 if t["reviewer_name"]:
@@ -151,12 +190,12 @@ if "view_task_id" in st.session_state and st.session_state.view_task_id:
         col1, col2 = st.columns(2)
         with col1:
             st.write(f"**Project:** {task['protocol_number']} — {task['study_name']}")
+            st.write(f"**Type:** {task['category_name']} → {task['subtype_code']} — {task['subtype_name']}" if task["subtype_code"] else "**Type:** N/A")
             st.write(f"**Assignee:** {task['assignee_name']}")
             st.write(f"**Reviewer:** {task['reviewer_name'] or 'Not assigned'}")
             st.write(f"**Status:** {get_status_badge(task['status'])}")
             st.write(f"**Priority:** {task['priority']}")
         with col2:
-            st.write(f"**Type:** {task['tfl_type'] or 'N/A'}")
             st.write(f"**Due Date:** {task['due_date'] or 'N/A'}")
             st.write(f"**Estimated Hours:** {task['estimated_hours'] or 'N/A'}")
             st.write(f"**Created:** {task['created_at']}")
