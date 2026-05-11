@@ -59,6 +59,19 @@ if rank >= 30:
     reviewers = [u for u in all_users if u["role_id"] in reviewer_rank_ids]
 
     with st.expander("Create New Task", icon=":material/add_task:"):
+        # Category outside form so selection triggers rerun for subtype cascade
+        if "new_task_cat" not in st.session_state:
+            st.session_state.new_task_cat = categories[0]["id"]
+
+        selected_cat = st.selectbox(
+            "Task Category",
+            options=[c["id"] for c in categories],
+            format_func=lambda x: next((c["name"] for c in categories if c["id"] == x), ""),
+            key="new_task_cat",
+        )
+
+        subtypes = task_model.get_subtypes(selected_cat)
+
         with st.form("new_task_form"):
             col1, col2 = st.columns(2)
             with col1:
@@ -71,26 +84,13 @@ if rank >= 30:
                 task_title = st.text_input("Task Title")
                 task_desc = st.text_area("Description")
 
-                # Cascading type selector
-                st.caption("Task Type")
-                tc1, tc2 = st.columns(2)
-                with tc1:
-                    task_category = st.selectbox(
-                        "Category",
-                        options=[c["id"] for c in categories],
-                        format_func=lambda x: next((c["name"] for c in categories if c["id"] == x), ""),
-                        key="new_task_cat",
-                    )
-                with tc2:
-                    task_subtypes = task_model.get_subtypes(task_category)
-                    task_subtype = st.selectbox(
-                        "Subtype",
-                        options=[s["id"] for s in task_subtypes],
-                        format_func=lambda x: next(
-                            (f"{s['code']} — {s['name']}" for s in task_subtypes if s["id"] == x), ""
-                        ),
-                        key="new_task_sub",
-                    )
+                task_subtype = st.selectbox(
+                    "Task Subtype",
+                    options=[s["id"] for s in subtypes],
+                    format_func=lambda x: next(
+                        (f"{s['code']} — {s['name']}" for s in subtypes if s["id"] == x), ""
+                    ),
+                )
 
             with col2:
                 task_assignee = st.selectbox(
