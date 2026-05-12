@@ -11,11 +11,12 @@ from services.task_service import change_status, get_allowed_transitions, get_st
 
 user = get_current_user()
 rank = get_rank(user)
+effective_rank = st.session_state.get("effective_role_rank", rank)
 
 st.title("My Tasks")
 
 # --- Summary Panel ---
-tasks = task_model.get_tasks_for_user(user)
+tasks = task_model.get_tasks_for_user(user, project_id=st.session_state.get("selected_project_id"))
 
 status_order = ["Not Started", "In Progress", "Awaiting QC", "QC In Review", "Revision Needed", "Complete"]
 status_colors = {
@@ -118,14 +119,20 @@ if filter_project != 0:
     tasks = [t for t in tasks if t["project_id"] == filter_project]
 
 # --- New Task Form (LSP/Admin only) ---
-if rank >= 30:
+if effective_rank >= 30:
     with st.expander("Create New Task", icon=":material/add_task:"):
-        all_users = user_model.get_all()
-        all_roles = user_model.get_all_roles()
-        sp_rank_ids = [r["id"] for r in all_roles if r["rank"] <= 25]
-        reviewer_rank_ids = [r["id"] for r in all_roles if r["rank"] >= 25]
-        assignable = [u for u in all_users if u["role_id"] in sp_rank_ids]
-        reviewers = [u for u in all_users if u["role_id"] in reviewer_rank_ids]
+        selected_pid = st.session_state.get("selected_project_id")
+        if selected_pid:
+            project_members = project_model.get_members(selected_pid)
+            assignable = [m for m in project_members if m["role_rank"] <= 25]
+            reviewers = [m for m in project_members if m["role_rank"] >= 25]
+        else:
+            all_users = user_model.get_all()
+            all_roles = user_model.get_all_roles()
+            sp_rank_ids = [r["id"] for r in all_roles if r["rank"] <= 25]
+            reviewer_rank_ids = [r["id"] for r in all_roles if r["rank"] >= 25]
+            assignable = [u for u in all_users if u["role_id"] in sp_rank_ids]
+            reviewers = [u for u in all_users if u["role_id"] in reviewer_rank_ids]
 
         if "new_task_cat" not in st.session_state:
             st.session_state.new_task_cat = categories[0]["id"]

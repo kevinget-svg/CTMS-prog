@@ -2,6 +2,7 @@
 
 import streamlit as st
 from auth.auth_manager import get_current_user, logout, change_password
+from auth import permissions
 from models import project as project_model
 
 
@@ -13,7 +14,6 @@ def render_sidebar():
 
     with st.sidebar:
         st.subheader(f"Welcome, {user['full_name']}")
-        st.caption(f"Role: {user['role_name']}")
 
         # Project filter stored in session state for cross-page persistence
         projects = project_model.get_projects_for_user(user["id"])
@@ -29,6 +29,23 @@ def render_sidebar():
                 format_func=lambda x: project_options[x],
                 key="sidebar_project_filter",
             )
+
+        # --- Effective Role Display ---
+        selected_id = st.session_state.get("selected_project_id")
+        if selected_id:
+            effective_name = permissions.get_effective_role_name(user, selected_id)
+            effective_rank = permissions.get_effective_rank(user, selected_id)
+            global_name = user["role_name"]
+            if effective_name != global_name:
+                st.caption(f"Role: **{effective_name}** (global: {global_name})")
+            else:
+                st.caption(f"Role: {effective_name}")
+            st.session_state.effective_role_rank = effective_rank
+            st.session_state.effective_role_name = effective_name
+        else:
+            st.caption(f"Role: {user['role_name']}")
+            st.session_state.effective_role_rank = user["role_rank"]
+            st.session_state.effective_role_name = user["role_name"]
 
         st.divider()
 

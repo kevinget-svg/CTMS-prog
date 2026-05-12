@@ -14,7 +14,7 @@ st.title("Timesheet")
 
 # --- Daily Entry Form ---
 with st.expander("Log Hours", expanded=True, icon=":material/edit_note:"):
-    tasks = task_model.get_tasks_for_user(user)
+    tasks = task_model.get_tasks_for_user(user, project_id=st.session_state.get("selected_project_id"))
     active_tasks = [t for t in tasks if t["status"] not in ("Complete",)]
     if not active_tasks:
         active_tasks = tasks

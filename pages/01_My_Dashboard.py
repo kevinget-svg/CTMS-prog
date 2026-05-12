@@ -19,7 +19,7 @@ sunday = monday + timedelta(days=6)
 week_start = str(monday)
 week_end = str(sunday)
 
-tasks = task_model.get_tasks_for_user(user)
+tasks = task_model.get_tasks_for_user(user, project_id=st.session_state.get("selected_project_id"))
 weekly_hours = ts_model.get_weekly_hours(user["id"], week_start, week_end)
 total_week = sum(weekly_hours.values())
 

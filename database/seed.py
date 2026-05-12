@@ -52,12 +52,27 @@ def seed(conn):
     )
 
     users = {u["username"]: u["id"] for u in conn.execute("SELECT id, username FROM users").fetchall()}
+    user_role_map = {"admin": "Admin", "lsp_wang": "LSP", "sa_zhang": "SA", "sp_li": "SP"}
 
-    for uid in users.values():
-        conn.execute("INSERT INTO project_members (project_id, user_id) VALUES (1, ?)", (uid,))
-    conn.execute("INSERT INTO project_members (project_id, user_id) VALUES (2, ?)", (users["lsp_wang"],))
-    conn.execute("INSERT INTO project_members (project_id, user_id) VALUES (2, ?)", (users["sp_li"],))
-    conn.execute("INSERT INTO project_members (project_id, user_id) VALUES (2, ?)", (users["sa_zhang"],))
+    # Project 1: all users with their global roles
+    for username, uid in users.items():
+        conn.execute(
+            "INSERT INTO project_members (project_id, user_id, role_id) VALUES (1, ?, ?)",
+            (uid, roles[user_role_map[username]]),
+        )
+    # Project 2: lsp_wang as LSP, sp_li as LSP (demo), sa_zhang as SA
+    conn.execute(
+        "INSERT INTO project_members (project_id, user_id, role_id) VALUES (2, ?, ?)",
+        (users["lsp_wang"], roles["LSP"]),
+    )
+    conn.execute(
+        "INSERT INTO project_members (project_id, user_id, role_id) VALUES (2, ?, ?)",
+        (users["sp_li"], roles["LSP"]),  # sp_li is LSP in Project 2 for demo
+    )
+    conn.execute(
+        "INSERT INTO project_members (project_id, user_id, role_id) VALUES (2, ?, ?)",
+        (users["sa_zhang"], roles["SA"]),
+    )
 
     sp_uid = users["sp_li"]
     sa_uid = users["sa_zhang"]

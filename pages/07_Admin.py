@@ -137,7 +137,7 @@ with tab2:
                 st.write(f"**Created:** {p['created_at']}")
 
                 members = project_model.get_members(p["id"])
-                st.caption(f"Members: {', '.join(m['full_name'] for m in members)}")
+                st.caption(f"Members: {', '.join(f'{m['full_name']} ({m['role_name']})' for m in members)}")
 
                 col1, col2 = st.columns(2)
                 with col1:
@@ -151,6 +151,7 @@ with tab2:
                         st.rerun()
                 with col2:
                     all_users = user_model.get_all()
+                    all_roles = user_model.get_all_roles()
                     current_member_ids = {m["id"] for m in members}
                     available = [u for u in all_users if u["id"] not in current_member_ids]
                     if available:
@@ -160,8 +161,14 @@ with tab2:
                             format_func=lambda x, avail=available: next((u["full_name"] for u in avail if u["id"] == x), ""),
                             key=f"add_{p['id']}",
                         )
+                        add_role_id = st.selectbox(
+                            "Role",
+                            options=[r["id"] for r in all_roles],
+                            format_func=lambda x: next((r["name"] for r in all_roles if r["id"] == x), ""),
+                            key=f"addrole_{p['id']}",
+                        )
                         if st.button("Add to Project", key=f"addbtn_{p['id']}"):
-                            project_model.add_member(p["id"], add_user_id)
+                            project_model.add_member(p["id"], add_user_id, add_role_id)
                             st.rerun()
 
 # --- Roles Tab ---

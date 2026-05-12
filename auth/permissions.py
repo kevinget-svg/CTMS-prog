@@ -77,6 +77,38 @@ def is_programmer(user: dict) -> bool:
     return get_rank(user) >= 10
 
 
+def get_effective_rank(user: dict, project_id: int = None) -> int:
+    """Get the user's rank in the given project. Falls back to global rank."""
+    if project_id and user and "id" in user:
+        from database.connection import get_db
+        db = get_db()
+        row = db.execute(
+            """SELECT r.rank FROM project_members pm
+               JOIN roles r ON pm.role_id = r.id
+               WHERE pm.project_id = ? AND pm.user_id = ?""",
+            (project_id, user["id"]),
+        ).fetchone()
+        if row:
+            return row["rank"]
+    return get_rank(user)
+
+
+def get_effective_role_name(user: dict, project_id: int = None) -> str:
+    """Get the user's role name in the given project. Falls back to global."""
+    if project_id and user and "id" in user:
+        from database.connection import get_db
+        db = get_db()
+        row = db.execute(
+            """SELECT r.name FROM project_members pm
+               JOIN roles r ON pm.role_id = r.id
+               WHERE pm.project_id = ? AND pm.user_id = ?""",
+            (project_id, user["id"]),
+        ).fetchone()
+        if row:
+            return row["name"]
+    return get_role_name(user)
+
+
 def get_visible_ranks(user_rank: int) -> list:
     """Return list of ranks visible to the given user rank."""
     return [r for r in [10, 20, 30, 40] if r <= user_rank]

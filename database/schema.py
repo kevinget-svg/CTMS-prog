@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS project_members (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id      INTEGER NOT NULL REFERENCES projects(id),
     user_id         INTEGER NOT NULL REFERENCES users(id),
+    role_id         INTEGER REFERENCES roles(id),
     UNIQUE(project_id, user_id)
 );
 
@@ -262,6 +263,22 @@ def migrate(conn):
                     "UPDATE users SET role_id = ? WHERE id = ?",
                     (role_row["id"], u["id"]),
                 )
+        conn.commit()
+
+    # Upgrade: add role_id to project_members for per-project roles
+    cursor = conn.execute("PRAGMA table_info(project_members)")
+    pm_columns = {row["name"] for row in cursor.fetchall()}
+    if "role_id" not in pm_columns:
+        conn.execute(
+            "ALTER TABLE project_members ADD COLUMN role_id INTEGER REFERENCES roles(id)"
+        )
+        # Backfill: copy each user's global role_id into their project memberships
+        conn.execute("""
+            UPDATE project_members
+            SET role_id = (
+                SELECT users.role_id FROM users WHERE users.id = project_members.user_id
+            )
+        """)
         conn.commit()
 
 

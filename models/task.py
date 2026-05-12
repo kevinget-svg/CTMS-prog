@@ -23,10 +23,11 @@ def get_subtypes(category_id: int = None):
     """).fetchall()
 
 
-def get_tasks_for_user(user: dict):
-    """Get tasks based on user rank."""
+def get_tasks_for_user(user: dict, project_id: int = None):
+    """Get tasks based on user's effective rank (project-scoped if project_id given)."""
+    from auth.permissions import get_effective_rank
     db = get_db()
-    rank = user.get("role_rank", 0)
+    rank = get_effective_rank(user, project_id)
     uid = user["id"]
 
     base_query = """
@@ -43,8 +44,14 @@ def get_tasks_for_user(user: dict):
     """
 
     if rank >= 40:
+        if project_id:
+            return db.execute(base_query + " WHERE t.project_id = ? ORDER BY t.updated_at DESC",
+                            (project_id,)).fetchall()
         return db.execute(base_query + " ORDER BY t.updated_at DESC").fetchall()
     elif rank >= 30:
+        if project_id:
+            return db.execute(base_query + " WHERE t.project_id = ? ORDER BY t.updated_at DESC",
+                            (project_id,)).fetchall()
         return db.execute(
             base_query + """
             JOIN project_members pm ON t.project_id = pm.project_id
@@ -53,13 +60,21 @@ def get_tasks_for_user(user: dict):
             """, (uid,),
         ).fetchall()
     elif rank >= 20:
+        if project_id:
+            return db.execute(
+                base_query + " WHERE t.project_id = ? AND (t.assigned_to = ? OR t.reviewer_id = ?) ORDER BY t.updated_at DESC",
+                (project_id, uid, uid),
+            ).fetchall()
         return db.execute(
-            base_query + """
-            WHERE t.assigned_to = ? OR t.reviewer_id = ?
-            ORDER BY t.updated_at DESC
-            """, (uid, uid),
+            base_query + " WHERE t.assigned_to = ? OR t.reviewer_id = ? ORDER BY t.updated_at DESC",
+            (uid, uid),
         ).fetchall()
     else:
+        if project_id:
+            return db.execute(
+                base_query + " WHERE t.project_id = ? AND t.assigned_to = ? ORDER BY t.updated_at DESC",
+                (project_id, uid),
+            ).fetchall()
         return db.execute(
             base_query + " WHERE t.assigned_to = ? ORDER BY t.updated_at DESC",
             (uid,),
@@ -153,7 +168,8 @@ def get_by_project(project_id: int, user: dict = None):
     """
     params = [project_id]
     if user:
-        rank = user.get("role_rank", 0)
+        from auth.permissions import get_effective_rank
+        rank = get_effective_rank(user, project_id)
         if rank < 20:
             query += " AND t.assigned_to = ?"
             params.append(user["id"])
