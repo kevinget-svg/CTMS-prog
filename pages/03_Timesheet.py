@@ -77,17 +77,45 @@ with col1:
 weekly = ts_model.get_weekly_hours(user["id"], str(ws), str(we))
 total_week = sum(weekly.values())
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Week Total", f"{total_week:.1f}h")
-with col2:
-    days_logged = len(weekly)
-    st.metric("Days Logged", str(days_logged))
-with col3:
-    avg = total_week / days_logged if days_logged > 0 else 0
-    st.metric("Avg Hours/Day", f"{avg:.1f}h")
+days_logged = len(weekly)
+avg = total_week / days_logged if days_logged > 0 else 0
+
+kpi_style = """
+<style>
+.kpi-grid { display: flex; gap: 16px; margin: 16px 0; }
+.kpi-card { flex: 1; padding: 20px 24px; border-radius: 12px; border: 1px solid #e0e0e0; background: #fff; }
+.kpi-label { font-size: 14px; color: #666; margin-bottom: 6px; }
+.kpi-value { font-size: 36px; font-weight: 700; line-height: 1.1; }
+.kpi-blue  .kpi-value { color: #1565C0; }
+.kpi-green .kpi-value { color: #2E7D32; }
+.kpi-teal  .kpi-value { color: #00695C; }
+</style>
+"""
+
+kpi_html = f"""
+{kpi_style}
+<div class="kpi-grid">
+    <div class="kpi-card kpi-blue">
+        <div class="kpi-label">Week Total</div>
+        <div class="kpi-value">{total_week:.1f}h</div>
+    </div>
+    <div class="kpi-card kpi-green">
+        <div class="kpi-label">Days Logged</div>
+        <div class="kpi-value">{days_logged}</div>
+    </div>
+    <div class="kpi-card kpi-teal">
+        <div class="kpi-label">Avg Hours / Day</div>
+        <div class="kpi-value">{avg:.1f}h</div>
+    </div>
+</div>
+"""
+st.html(kpi_html)
 
 st.subheader(f"Week of {ws} to {we}")
+
+fig = hours_bar_chart(weekly)
+if fig:
+    st.plotly_chart(fig, use_container_width=True)
 
 entries = ts_model.get_by_user_date_range(user["id"], str(ws), str(we))
 weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -109,10 +137,5 @@ if entries:
                 st.write(f"**{day_label}** — {e['task_title']} — {e['hours']}h — {e['description'] or ''}")
         else:
             st.caption(f"{day_label} — No entries")
-
-    st.divider()
-    fig = hours_bar_chart(weekly)
-    if fig:
-        st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("No timesheet entries for this week.")
