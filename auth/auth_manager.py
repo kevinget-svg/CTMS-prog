@@ -51,7 +51,6 @@ def logout():
     """Clear authentication state."""
     st.session_state.authenticated = False
     st.session_state.user = None
-    st.rerun()
 
 
 def change_password(user_id: int, old_password: str, new_password: str) -> tuple[bool, str]:
