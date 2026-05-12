@@ -23,18 +23,53 @@ tasks = task_model.get_tasks_for_user(user)
 weekly_hours = ts_model.get_weekly_hours(user["id"], week_start, week_end)
 total_week = sum(weekly_hours.values())
 
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    in_progress = sum(1 for t in tasks if t["status"] == "In Progress")
-    st.metric("In Progress", in_progress)
-with col2:
-    awaiting_qc = sum(1 for t in tasks if t["status"] in ("Awaiting QC", "QC In Review"))
-    st.metric("In QC", awaiting_qc)
-with col3:
-    overdue = sum(1 for t in tasks if t["due_date"] and t["due_date"] < str(today) and t["status"] != "Complete")
-    st.metric("Overdue", overdue, delta_color="inverse")
-with col4:
-    st.metric("Hours This Week", f"{total_week:.1f}h")
+in_progress = sum(1 for t in tasks if t["status"] == "In Progress")
+awaiting_qc = sum(1 for t in tasks if t["status"] in ("Awaiting QC", "QC In Review"))
+overdue = sum(1 for t in tasks if t["due_date"] and t["due_date"] < str(today) and t["status"] != "Complete")
+total_tasks = len(tasks)
+complete_tasks = sum(1 for t in tasks if t["status"] == "Complete")
+
+kpi_style = """
+<style>
+.kpi-grid { display: flex; gap: 16px; margin: 16px 0; }
+.kpi-card { flex: 1; padding: 20px 24px; border-radius: 12px; border: 1px solid #e0e0e0; background: #fff; }
+.kpi-label { font-size: 14px; color: #666; margin-bottom: 6px; }
+.kpi-value { font-size: 36px; font-weight: 700; line-height: 1.1; }
+.kpi-sub { font-size: 13px; color: #888; margin-top: 4px; }
+.kpi-blue  .kpi-value { color: #1565C0; }
+.kpi-green .kpi-value { color: #2E7D32; }
+.kpi-red   .kpi-value { color: #C62828; }
+.kpi-orange .kpi-value { color: #E65100; }
+</style>
+"""
+
+kpi_html = f"""
+{kpi_style}
+<div class="kpi-grid">
+    <div class="kpi-card kpi-blue">
+        <div class="kpi-label">In Progress</div>
+        <div class="kpi-value">{in_progress}</div>
+        <div class="kpi-sub">{complete_tasks} completed / {total_tasks} total tasks</div>
+    </div>
+    <div class="kpi-card kpi-orange">
+        <div class="kpi-label">In QC Review</div>
+        <div class="kpi-value">{awaiting_qc}</div>
+        <div class="kpi-sub">Awaiting or under QC review</div>
+    </div>
+    <div class="kpi-card kpi-red">
+        <div class="kpi-label">Overdue</div>
+        <div class="kpi-value">{overdue}</div>
+        <div class="kpi-sub">Past due date, not yet completed</div>
+    </div>
+    <div class="kpi-card kpi-green">
+        <div class="kpi-label">Hours This Week</div>
+        <div class="kpi-value">{total_week:.1f}<span style="font-size:20px;color:#888;"> h</span></div>
+        <div class="kpi-sub">{len(weekly_hours)} days logged this week</div>
+    </div>
+</div>
+"""
+
+st.html(kpi_html)
 
 st.divider()
 
