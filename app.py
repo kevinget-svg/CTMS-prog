@@ -36,7 +36,10 @@ all_pages = [
     st.Page("pages/05_QC_Review.py", title="QC Review", icon=":material/rate_review:"),
 ]
 
-if rank >= 30:  # Manager, Admin
+if rank >= 30:  # LSP, Admin
+    all_pages.append(
+        st.Page("pages/08_Projects.py", title="Projects", icon=":material/folder_managed:")
+    )
     all_pages.append(
         st.Page("pages/06_Team_Dashboard.py", title="Team Dashboard", icon=":material/group:")
     )
