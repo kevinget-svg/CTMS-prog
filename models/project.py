@@ -61,8 +61,14 @@ def remove_member(project_id: int, user_id: int):
     db.commit()
 
 
-def get_projects_for_user(user_id: int):
+def get_projects_for_user(user_id: int, is_admin: bool = False):
     db = get_db()
+    if is_admin:
+        return db.execute("""
+            SELECT p.*, NULL as member_role_id
+            FROM projects p
+            ORDER BY p.created_at DESC
+        """).fetchall()
     return db.execute("""
         SELECT p.*, pm.role_id as member_role_id
         FROM projects p

@@ -15,8 +15,9 @@ def render_sidebar():
     with st.sidebar:
         st.subheader(f"Welcome, {user['full_name']}")
 
-        # Project filter stored in session state for cross-page persistence
-        projects = project_model.get_projects_for_user(user["id"])
+        # Project filter: admin sees all projects, others see their memberships
+        is_admin = user.get("role_rank", 0) >= 40
+        projects = project_model.get_projects_for_user(user["id"], is_admin=is_admin)
         project_options = {p["id"]: f"{p['protocol_number']} — {p['study_name']}" for p in projects}
 
         if project_options:
