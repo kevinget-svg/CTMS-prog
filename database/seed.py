@@ -1,14 +1,10 @@
 """Seed the database with initial admin user and demo data."""
 
 import bcrypt
-from database.schema import init_db, migrate
 
 
 def seed(conn):
     """Create seed data if users table is empty."""
-    init_db(conn)
-    migrate(conn)
-
     existing = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
     if existing > 0:
         return

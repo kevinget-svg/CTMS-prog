@@ -56,16 +56,10 @@ def deactivate(user_id: int):
     db.commit()
 
 
-def get_by_rank_min(min_rank: int):
-    """Get users with rank >= min_rank."""
+def reactivate(user_id: int):
     db = get_db()
-    return db.execute(
-        """SELECT u.*, r.name as role_name, r.rank as role_rank
-           FROM users u JOIN roles r ON u.role_id = r.id
-           WHERE u.is_active = 1 AND r.rank >= ?
-           ORDER BY r.rank, u.full_name""",
-        (min_rank,),
-    ).fetchall()
+    db.execute("UPDATE users SET is_active = 1 WHERE id = ?", (user_id,))
+    db.commit()
 
 
 # --- Role Management ---
@@ -73,11 +67,6 @@ def get_by_rank_min(min_rank: int):
 def get_all_roles():
     db = get_db()
     return db.execute("SELECT * FROM roles ORDER BY rank DESC").fetchall()
-
-
-def get_role_by_id(role_id: int):
-    db = get_db()
-    return db.execute("SELECT * FROM roles WHERE id = ?", (role_id,)).fetchone()
 
 
 def create_role(name: str, rank: int, description: str = None):

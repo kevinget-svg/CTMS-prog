@@ -7,7 +7,7 @@ from auth.permissions import get_rank
 from models import task as task_model
 from models import user as user_model
 from models import project as project_model
-from services.task_service import change_status, get_allowed_transitions, get_status_badge
+from services.task_service import change_status, get_allowed_transitions, get_status_badge, STATUS_COLORS
 
 user = get_current_user()
 rank = get_rank(user)
@@ -19,14 +19,6 @@ st.title("My Tasks")
 tasks = task_model.get_tasks_for_user(user, project_id=st.session_state.get("selected_project_id"))
 
 status_order = ["Not Started", "In Progress", "Awaiting QC", "QC In Review", "Revision Needed", "Complete"]
-status_colors = {
-    "Not Started":    "#9E9E9E",
-    "In Progress":    "#1565C0",
-    "Awaiting QC":    "#E65100",
-    "QC In Review":   "#7B1FA2",
-    "Revision Needed": "#C62828",
-    "Complete":       "#2E7D32",
-}
 status_counts = {s: sum(1 for t in tasks if t["status"] == s) for s in status_order}
 total = len(tasks)
 
@@ -36,14 +28,14 @@ for s in status_order:
     count = status_counts[s]
     if count > 0:
         pct = count / max(total, 1) * 100
-        bar_html += f"<div title='{s}: {count}' style='height:100%;width:{pct}%;background:{status_colors[s]};'></div>"
+        bar_html += f"<div title='{s}: {count}' style='height:100%;width:{pct}%;background:{STATUS_COLORS[s]};'></div>"
 bar_html += "</div>"
 
 # Legend
 legend_parts = []
 for s in status_order:
     legend_parts.append(f"<span style='display:inline-flex;align-items:center;gap:4px;margin-right:14px;'>"
-                        f"<span style='width:10px;height:10px;border-radius:2px;background:{status_colors[s]};display:inline-block;'></span>"
+                        f"<span style='width:10px;height:10px;border-radius:2px;background:{STATUS_COLORS[s]};display:inline-block;'></span>"
                         f"{s} <b>{status_counts[s]}</b></span>")
 legend_html = "".join(legend_parts)
 
@@ -195,7 +187,7 @@ else:
         type_label = f"{t['category_name']}/{t['subtype_code']}" if t["subtype_code"] else ""
 
         # Build a compact summary line
-        status_bg = status_colors.get(t["status"], "#9E9E9E")
+        status_bg = STATUS_COLORS.get(t["status"], "#9E9E9E")
         row_html = f"""
         <div style="display:flex;align-items:center;gap:12px;padding:2px 0;">
             <span style="background:{status_bg};color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap;">{t['status']}</span>

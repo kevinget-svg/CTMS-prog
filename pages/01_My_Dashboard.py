@@ -7,6 +7,7 @@ from models import task as task_model
 from models import timesheet as ts_model
 from models import project as project_model
 from components.charts import hours_bar_chart, task_status_pie_chart
+from components.kpi_card import render_kpi_cards
 
 user = get_current_user()
 
@@ -29,47 +30,16 @@ overdue = sum(1 for t in tasks if t["due_date"] and t["due_date"] < str(today) a
 total_tasks = len(tasks)
 complete_tasks = sum(1 for t in tasks if t["status"] == "Complete")
 
-kpi_style = """
-<style>
-.kpi-grid { display: flex; gap: 16px; margin: 16px 0; }
-.kpi-card { flex: 1; padding: 20px 24px; border-radius: 12px; border: 1px solid #e0e0e0; background: #fff; }
-.kpi-label { font-size: 14px; color: #666; margin-bottom: 6px; }
-.kpi-value { font-size: 36px; font-weight: 700; line-height: 1.1; }
-.kpi-sub { font-size: 13px; color: #888; margin-top: 4px; }
-.kpi-blue  .kpi-value { color: #1565C0; }
-.kpi-green .kpi-value { color: #2E7D32; }
-.kpi-red   .kpi-value { color: #C62828; }
-.kpi-orange .kpi-value { color: #E65100; }
-</style>
-"""
-
-kpi_html = f"""
-{kpi_style}
-<div class="kpi-grid">
-    <div class="kpi-card kpi-blue">
-        <div class="kpi-label">In Progress</div>
-        <div class="kpi-value">{in_progress}</div>
-        <div class="kpi-sub">{complete_tasks} completed / {total_tasks} total tasks</div>
-    </div>
-    <div class="kpi-card kpi-orange">
-        <div class="kpi-label">In QC Review</div>
-        <div class="kpi-value">{awaiting_qc}</div>
-        <div class="kpi-sub">Awaiting or under QC review</div>
-    </div>
-    <div class="kpi-card kpi-red">
-        <div class="kpi-label">Overdue</div>
-        <div class="kpi-value">{overdue}</div>
-        <div class="kpi-sub">Past due date, not yet completed</div>
-    </div>
-    <div class="kpi-card kpi-green">
-        <div class="kpi-label">Hours This Week</div>
-        <div class="kpi-value">{total_week:.1f}<span style="font-size:20px;color:#888;"> h</span></div>
-        <div class="kpi-sub">{len(weekly_hours)} days logged this week</div>
-    </div>
-</div>
-"""
-
-st.html(kpi_html)
+render_kpi_cards([
+    {"label": "In Progress", "value": str(in_progress), "color": "blue",
+     "sub": f"{complete_tasks} completed / {total_tasks} total tasks"},
+    {"label": "In QC Review", "value": str(awaiting_qc), "color": "orange",
+     "sub": "Awaiting or under QC review"},
+    {"label": "Overdue", "value": str(overdue), "color": "red",
+     "sub": "Past due date, not yet completed"},
+    {"label": "Hours This Week", "value": f'{total_week:.1f}<span style="font-size:20px;color:#888;"> h</span>', "color": "green",
+     "sub": f"{len(weekly_hours)} days logged this week"},
+])
 
 st.divider()
 

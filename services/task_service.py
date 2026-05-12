@@ -11,13 +11,13 @@ ALLOWED_TRANSITIONS = {
     "Revision Needed": ["In Progress"],
 }
 
-STATUS_DISPLAY = {
-    "Not Started":    ":gray[Not Started]",
-    "In Progress":    ":blue[In Progress]",
-    "Awaiting QC":    ":orange[Awaiting QC]",
-    "QC In Review":   ":violet[QC In Review]",
-    "Revision Needed": ":red[Revision Needed]",
-    "Complete":       ":green[Complete]",
+STATUS_COLORS = {
+    "Not Started":    "#9E9E9E",
+    "In Progress":    "#1565C0",
+    "Awaiting QC":    "#E65100",
+    "QC In Review":   "#7B1FA2",
+    "Revision Needed": "#C62828",
+    "Complete":       "#2E7D32",
 }
 
 
@@ -46,13 +46,9 @@ def change_status(task_id: int, new_status: str) -> bool:
 
 def get_status_badge(status: str) -> str:
     """Return colored markdown badge for a status."""
-    colors = {
-        "Not Started": "gray",
-        "In Progress": "blue",
-        "Awaiting QC": "orange",
-        "QC In Review": "violet",
-        "Revision Needed": "red",
-        "Complete": "green",
+    named = {
+        "Not Started": "gray", "In Progress": "blue",
+        "Awaiting QC": "orange", "QC In Review": "violet",
+        "Revision Needed": "red", "Complete": "green",
     }
-    color = colors.get(status, "gray")
-    return f":{color}[{status}]"
+    return f":{named.get(status, 'gray')}[{status}]"

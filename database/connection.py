@@ -8,10 +8,6 @@ DB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 DB_PATH = os.path.join(DB_DIR, "ctms.db")
 
 
-def get_db_path():
-    return DB_PATH
-
-
 @st.cache_resource
 def get_connection() -> sqlite3.Connection:
     """Return a cached SQLite connection with WAL mode and foreign keys enabled."""

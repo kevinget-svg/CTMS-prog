@@ -65,12 +65,6 @@ def upsert_entry(user_id: int, task_id: int, work_date: str, hours: float, descr
     db.commit()
 
 
-def delete_entry(entry_id: int):
-    db = get_db()
-    db.execute("DELETE FROM timesheet_entries WHERE id = ?", (entry_id,))
-    db.commit()
-
-
 def get_all_entries(date_from: str = None, date_to: str = None, project_id: int = None):
     """Get all timesheet entries (for Manager/Admin views)."""
     db = get_db()

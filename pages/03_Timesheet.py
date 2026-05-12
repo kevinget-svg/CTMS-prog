@@ -7,6 +7,7 @@ from models import task as task_model
 from models import timesheet as ts_model
 from services.hours_service import validate_hours
 from components.charts import hours_bar_chart
+from components.kpi_card import render_kpi_cards
 
 user = get_current_user()
 
@@ -80,36 +81,11 @@ total_week = sum(weekly.values())
 days_logged = len(weekly)
 avg = total_week / days_logged if days_logged > 0 else 0
 
-kpi_style = """
-<style>
-.kpi-grid { display: flex; gap: 16px; margin: 16px 0; }
-.kpi-card { flex: 1; padding: 20px 24px; border-radius: 12px; border: 1px solid #e0e0e0; background: #fff; }
-.kpi-label { font-size: 14px; color: #666; margin-bottom: 6px; }
-.kpi-value { font-size: 36px; font-weight: 700; line-height: 1.1; }
-.kpi-blue  .kpi-value { color: #1565C0; }
-.kpi-green .kpi-value { color: #2E7D32; }
-.kpi-teal  .kpi-value { color: #00695C; }
-</style>
-"""
-
-kpi_html = f"""
-{kpi_style}
-<div class="kpi-grid">
-    <div class="kpi-card kpi-blue">
-        <div class="kpi-label">Week Total</div>
-        <div class="kpi-value">{total_week:.1f}h</div>
-    </div>
-    <div class="kpi-card kpi-green">
-        <div class="kpi-label">Days Logged</div>
-        <div class="kpi-value">{days_logged}</div>
-    </div>
-    <div class="kpi-card kpi-teal">
-        <div class="kpi-label">Avg Hours / Day</div>
-        <div class="kpi-value">{avg:.1f}h</div>
-    </div>
-</div>
-"""
-st.html(kpi_html)
+render_kpi_cards([
+    {"label": "Week Total", "value": f"{total_week:.1f}h", "color": "blue"},
+    {"label": "Days Logged", "value": str(days_logged), "color": "green"},
+    {"label": "Avg Hours / Day", "value": f"{avg:.1f}h", "color": "teal"},
+])
 
 st.subheader(f"Week of {ws} to {we}")
 
