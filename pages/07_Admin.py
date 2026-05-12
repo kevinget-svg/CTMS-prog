@@ -56,7 +56,7 @@ with tab1:
         st.dataframe(
             [
                 {"ID": u["id"], "Username": u["username"], "Full Name": u["full_name"],
-                 "Email": u["email"] or "", "Role": u["role_name"],
+                 "Email": u["email"] or "",
                  "Active": "Yes" if u["is_active"] else "No"}
                 for u in users
             ],
