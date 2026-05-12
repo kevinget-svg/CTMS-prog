@@ -24,7 +24,7 @@ with st.expander("Log Hours", expanded=True, icon=":material/edit_note:"):
     else:
         col1, col2 = st.columns(2)
         with col1:
-            work_date = st.date_input("Date", value=date.today())
+            work_date = st.date_input("Date", value=date.today(), max_value=date.today())
         with col2:
             task_id = st.selectbox(
                 "Task",
