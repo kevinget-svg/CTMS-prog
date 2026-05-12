@@ -238,6 +238,13 @@ def migrate(conn):
     # Seed task categories and subtypes
     seed_task_types(conn)
 
+    # Upgrade: add subtype_id column to tasks (replaces old tfl_type)
+    cursor = conn.execute("PRAGMA table_info(tasks)")
+    task_columns = {row["name"] for row in cursor.fetchall()}
+    if "subtype_id" not in task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN subtype_id INTEGER REFERENCES task_subtypes(id)")
+        conn.commit()
+
     # Upgrade: if users table still has old 'role' text column, migrate to role_id
     cursor = conn.execute("PRAGMA table_info(users)")
     columns = {row["name"] for row in cursor.fetchall()}
